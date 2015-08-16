@@ -55,7 +55,7 @@ class Recommend(View):
 
 class Test(View):
     def get(self, request):
-        dict_res = get_recommendation('Test', 1429260495, {'lat': 45.254, 'lon': 19.824},
+        dict_res = get_recommendation(u'dd61702d4b4e13e2291723bbb22d5981', 1429260495, {'lat': 45.254, 'lon': 19.824},
                                       "vfdjv36q9347fdvgsdv", None, 5)
         return HttpResponse(str(dict_res))
 
@@ -67,6 +67,7 @@ class Categories(View):
 
 
 class Matrix(View):
+
     def post(self, request):
         recommendation_matrix = request.body
         checksum = hashlib.md5()
@@ -78,7 +79,7 @@ class Matrix(View):
         rm.save()
 
         response = HttpResponse(response_data)
-        response.status_code == 200
+        response.status_code = 200
         return response
 
 
