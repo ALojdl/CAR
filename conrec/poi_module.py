@@ -423,6 +423,8 @@ def fetch_poi(matrix_name, categories_list, lat, lng, stretch):
     else:
         read_list = dict()
 
+    print read_list
+    print poi_list
     return [read_list, poi_list]
 
 
