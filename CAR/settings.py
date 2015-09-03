@@ -87,3 +87,7 @@ STATICFILES_DIRS = (
 TEMPLATE_DIRS = (
     os.path.join(BASE_DIR,  'conrec/templates'),
 )
+
+FIXTURE_DIRS = (
+    os.path.join(BASE_DIR, 'conrec/fixtures'),
+)
