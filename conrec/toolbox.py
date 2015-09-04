@@ -1,3 +1,6 @@
+"""
+    This file contains all functions necessary for core recommendation process.
+"""
 import urllib2
 import json
 import operator
@@ -10,6 +13,23 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from conrec.models import Ignore, Keys, RecommendationMatrix
 from conrec.poi_module import fetch_poi, grade_distance, distance_between_gps_coordinates, POI_DP_URL
+
+
+def read_matrix(matrix_name):
+    """
+    Read recommendation matrix from database based on it's name.
+    :param matrix_name: String representation of name.
+    :return: JSON object representing recommendation matrix.
+    """
+    matrix = RecommendationMatrix.objects.filter(name=matrix_name)
+    if matrix.count() == 0:
+        return None
+    else:
+        data = matrix[0].data
+        str_data = data.replace("'", '"')
+        rec_matrix = json.loads(str_data)
+        return rec_matrix
+# ----------------------------------------------------------------------------------------------------------------------
 
 
 class WritePOIToDatabase(Thread):
@@ -146,20 +166,7 @@ def make_chunks(dictionary, n):
         yield {k: dictionary[k] for k in islice(it, n)}
 
 
-def read_matrix(matrix_name):
-    """
-    Read recommendation matrix from database based on it's name.
-    :param matrix_name: String representation of name.
-    :return: JSON object representing recommendation matrix.
-    """
-    matrix = RecommendationMatrix.objects.filter(name=matrix_name)
-    if matrix.count() == 0:
-        return None
-    else:
-        data = matrix[0].data
-        str_data = data.replace("'", '"')
-        rec_matrix = json.loads(str_data)
-        return rec_matrix
+
 
 
 def get_grades(matrix, activity, time_stamp):

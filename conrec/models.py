@@ -1,22 +1,10 @@
 from django.db import models
 from djangotoolbox.fields import ListField, EmbeddedModelField
 
-'''
-    Ignore stores info about ignores.
-    NOTE: To work with the database in Django you need to "makemigrations" and then "migrate".
-    https://docs.djangoproject.com/en/1.7/topics/migrations/
-'''
-
 
 class Ignore(models.Model):
     uuid = models.CharField(max_length=30)
     ignored = models.CharField(max_length=30)
-
-
-class Area(models.Model):
-    name = models.CharField(max_length=60)
-    lat_id = models.IntegerField()
-    lng_id = models.IntegerField()
 
 
 class Keys(models.Model):
@@ -29,10 +17,15 @@ class RecommendationMatrix(models.Model):
     name = models.CharField(max_length=60)
     data = models.CharField(max_length=8192)
 
-# New format
+
+class Area(models.Model):
+    name = models.CharField(max_length=60)
+    lat_id = models.IntegerField()
+    lng_id = models.IntegerField()
+    data = ListField(EmbeddedModelField('MetaDataFormat'))
 
 
-class MataDataFormat(models.Model):
+class MetaDataFormat(models.Model):
     content_id = models.CharField(max_length=60)
     type = models.CharField(max_length=60)
     description = models.CharField(max_length=60)
@@ -48,7 +41,7 @@ class PoiAttributes(models.Model):
     openHours = ListField(EmbeddedModelField('PoiOpenHour'))
     fee = ListField(EmbeddedModelField('PoiFee'))
     tags = ListField(models.CharField(max_length=60))
-    coords = ListField(models.IntegerField())
+    coords = ListField(models.DecimalField())
     city = EmbeddedModelField('PoiCity')
 
 
@@ -73,7 +66,7 @@ class PoiCity(models.Model):
     displayName = models.CharField(max_length=60)
     description = models.CharField(max_length=60)
     locale = models.CharField(max_length=60)
-    coords = ListField(models.IntegerField())
+    coords = ListField(models.DecimalField())
 
 
 class PoiSocialAttribute(models.Model):

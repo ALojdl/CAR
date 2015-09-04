@@ -1,4 +1,6 @@
-""" This file contains all functions that works with coordinates or with Points of Interest. """
+"""
+    This file contains different mathematical/geographical functions used in recommendation process.
+"""
 import urllib2
 import json
 
@@ -6,7 +8,7 @@ from threading import Thread
 from math import radians, cos, sin, atan2, sqrt, ceil, pi, floor
 from models import Area
 
-""" Global variables """
+# Global variables
 EARTH_RADIUS = 6371500
 EARTH_CIRCUMFERENCE = EARTH_RADIUS * pi * 2
 EARTH_CIRCUMFERENCE_1_2 = EARTH_CIRCUMFERENCE / 2
@@ -20,23 +22,15 @@ REC_H = RADIUS
 LAT_ID_MAX = ceil(EARTH_CIRCUMFERENCE_1_4 / REC_H)
 LON_ID_MAX = ceil(EARTH_CIRCUMFERENCE_1_2 / REC_W)
 
-# NOTE: Use your own CLIENT_ID and CLIENT_SECRET to communicate with Foursquare.
-CLIENT_ID = "PHLMPJ4EJZB2QBQHZG2KUUTNNWZTLW4ZEJRRQI5VW5TLMRMI"
-CLIENT_SECRET = "A25MIXXIPP42RD1P4T4PMKZVIYE0OAUHHWX1PPB3YECAFQ4N"
-
-BASE_URL = "https://api.foursquare.com/v2/venues/search?client_id=%s&client_secret=%s&limit=50&intent=browse"\
-           % (CLIENT_ID, CLIENT_SECRET)
-
-CATEGORIES_BASE_URL = "https://api.foursquare.com/v2/venues/categories?client_id=%s&client_secret=%s&v=20150101"\
-                      % (CLIENT_ID, CLIENT_SECRET)
-
 POI_DP_URL = "http://localhost/poi_dp/"
 
 
 class GetFoursquareResponses(Thread):
     """
-    This class is representing one thread sending request to Foursquare API and then processing received data and
-    storing the data to POI Data Provider database.
+    This class is representing one thread sending request to Foursquare API. Threads do following:
+        - make a request to Foursquare API
+        - transforms given data to already defined format
+        - stores the data as some element to list
     """
     def __init__(self, matrix_name, category, ne_lat, ne_lng, sw_lat, sw_lng):
         self.results = []
@@ -67,7 +61,10 @@ class GetFoursquareResponses(Thread):
 
 class GetGivenRectangles(Thread):
     """
-    This class represents thread requesting POIs for given area.
+    This class represents thread requesting POIs for given area. Threads do following:
+        - get South-West and North-East coordinates for the given rectangle
+        - made call to get_points_ne_sw, where parameters are given coordinates
+        - write info to database, that the given Area is stored
     """
     def __init__(self, matrix_name, categories, area_id):
         self.results = []
@@ -86,95 +83,6 @@ class GetGivenRectangles(Thread):
 
         # Store given rectangle as existing to database.
         Area(name=self.matrix_name, lat_id=self.area_id['lat'], lng_id=self.area_id['lng']).save()
-
-
-def get_response(url):
-    """
-    This function is used to make connection to Foursquare API.
-    :param url: String representation of URL that user wants to call.
-    :return: Return dictionary of venues from Foursquare API
-    """
-    headers = dict()
-    headers['Accept'] = 'application/json'
-    request = urllib2.Request(url, None, headers)
-    result = urllib2.urlopen(request)
-    obj = json.loads(result.read())
-    poi = obj['response']['venues']
-    return poi
-
-
-def filter_result(data):
-    """
-    Filters the result that Foursquare API returned as answer to our request. Filtered result is compatible with POI
-    proxy Specific Enabler that can be used to collect data from different online services.
-    NOTE: There code is available on https://github.com/alrocar/POIProxy .
-    :param data: Dictionary of venues returned from Foursquare API.
-    :return: Returns new dictionary containing only one part of information from original response.
-    """
-    new_data = []
-    for poi in data:
-        new_data.append({"geometry": {"coordinates": [poi['location']['lng'], poi['location']['lat']]},
-                         "properties": {"name": poi['name'], "category": poi['categories'][0]['name']}})
-    return new_data
-
-
-def radius(lat, lon, dist, categories=None, search=None):
-    """
-    Defines how to use radius search on Foursquare API. User just needs to provide data, everything else will be
-    modified as defined on Foursquare API.
-    :param lat: Latitude of center point.
-    :param lon: Longitude of center point.
-    :param dist: Distance from center point defining a search region.
-    :param categories: POI categories that we are interested in.
-    :param search: Search term in form of string. NOTE: No spaces!
-    :return: Filtered result from Foursquare API.
-    """
-    if search is None:
-        url = BASE_URL + "&radius=%d&v=20150101&ll=%f,%f" % (dist, lat, lon)
-    else:
-        url = BASE_URL + "&radius=%d&v=20150101&ll=%f,%f&search=%s" % (dist, lat, lon, search)
-
-    if categories is not None:
-        url_add = ""
-        for cat in categories:
-            url_add = url_add + str(cat) + ","
-
-        url = url + "&categoryId=" + url_add
-        url = url[:-1]
-
-    poi = get_response(url)
-    return filter_result(poi)
-
-
-def extend(min_x, min_y, max_x, max_y, categories=None, search=None):
-    """
-    Defines how to use radius search on Foursquare API. User just needs to provide data, everything else will be
-    modified as defined on Foursquare API.
-    :param min_x: Longitude of South-West point.
-    :param min_y: Latitude of South-West point.
-    :param max_x: Longitude Requested setting DEFAULT_INDEX_TABLESPACE, but settings are not configured. You must either
-     define the environment variable DJANGO_SETTINGS_MODULE or call settings.configure() before accessing settings of
-      North-East point.
-    :param max_y: Longitude of North-East point.
-    :param categories: POI categories that we are interested in.
-    :param search: Search term in form of string. NOTE: No spaces!
-    :return: Filtered result from Foursquare API.
-    """
-    if search is None:
-        url = BASE_URL + "&v=20150101&sw=%f,%f&ne=%f,%f" % (min_y, min_x, max_y, max_x)
-    else:
-        url = BASE_URL + "&v=20150101&sw=%f,%f&ne=%f,%f&search=%s" % (min_y, min_x, max_y, max_x, search)
-
-    if categories is not None:
-        url_add = ""
-        for cat in categories:
-            url_add = url_add + str(cat) + ","
-
-        url = url + "&categoryId=" + url_add
-        url = url[:-1]
-
-    poi = get_response(url)
-    return filter_result(poi)
 
 
 def distance_between_gps_coordinates(lat_a, lon_a, lat_b, lon_b):
@@ -268,7 +176,7 @@ def get_ids(coordinates):
     :param coordinates: Dictionary containing latitude and longitude of some point.
     :return: List of dictionaries that represent nine rectangles that are candidates for circle intersection.
     """
-    size = int (ceil(float(RADIUS) / min(REC_H, REC_W)))
+    size = int(ceil(float(RADIUS) / min(REC_H, REC_W)))
     ids = []
     center_id = get_id(coordinates)
     center_sq = get_sw_ne(center_id)
@@ -346,6 +254,7 @@ def get_points_ne_sw(ne_lat, ne_lng, sw_lat, sw_lng, categories, matrix_name):
         t = GetFoursquareResponses(matrix_name, cat, ne_lat, ne_lng, sw_lat, sw_lng)
         threads.append(t)
         t.start()
+
     for t in threads:
         t.join()
         for row in t.results:
@@ -370,7 +279,8 @@ def check_for_areas(area_list, name):
 def store_to_areas(matrix_name, categories_list, area_id_list):
     """
     Function that stores information for given area identification. Based of this identification, function gets
-    coordinates and then makes call to Foursquare API to collect data and store it to POI Data Provider.
+    coordinates and then makes call to Foursquare API to collect data and store it to our local database.
+    :param matrix_name: Name of matrix used to categories data.
     :param categories_list: List of categories defined in recommendation matrix.
     :param area_id_list: List of area identification numbers.
     """
@@ -386,6 +296,34 @@ def store_to_areas(matrix_name, categories_list, area_id_list):
             for row in lst:
                 results.append(row)
     return results
+
+
+def get_foursquare_categories():
+    """
+    Add Foursquare categories to database
+    :return: content of Foursquare API response
+    """
+    request = urllib2.Request(CATEGORIES_BASE_URL, None)
+    result = urllib2.urlopen(request, None, timeout=10)
+    if result.code == 200:
+        response = json.loads(result.read())
+        return response['response']['categories']
+
+    return None
+
+
+def categories():
+    """
+    Reads Foursquare category hierarchy and sends second level of this hierarchy to user.
+    :return: List containing dictionaries representing Foursquare subcategories.
+    """
+    categories = get_foursquare_categories()
+    categories_lst = []
+    for cat in categories:
+        for sub_cat in cat['categories']:
+            categories_lst.append({"name": sub_cat['name'], "id": sub_cat['id']})
+
+    return categories_lst
 
 
 def fetch_poi(matrix_name, categories_list, lat, lng, stretch):
@@ -424,31 +362,3 @@ def fetch_poi(matrix_name, categories_list, lat, lng, stretch):
         read_list = dict()
 
     return [read_list, poi_list]
-
-
-def get_foursquare_categories():
-    """
-    Add Foursquare categories to database
-    :return: content of Foursquare API response
-    """
-    request = urllib2.Request(CATEGORIES_BASE_URL, None)
-    result = urllib2.urlopen(request, None, timeout=10)
-    if result.code == 200:
-        response = json.loads(result.read())
-        return response['response']['categories']
-
-    return None
-
-
-def get_subcategories():
-    """
-    Reads Foursquare category hierarchy and sends second level to user.
-    :return: List containing dictionaries representing Foursquare subcategories.<
-    """
-    categories = get_foursquare_categories()
-    categories_lst = []
-    for cat in categories:
-        for sub_cat in cat['categories']:
-            categories_lst.append({"name": sub_cat['name'], "id": sub_cat['id']})
-
-    return categories_lst

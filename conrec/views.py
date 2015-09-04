@@ -3,11 +3,11 @@ import hashlib
 
 from django.http import HttpResponse
 from django.views.generic import View
-from conrec.toolbox import get_recommendation, get_user_activity
-from conrec.poi_module import get_subcategories
-from conrec.models import RecommendationMatrix
+from conrec.toolbox import get_recommendation
+from conrec.controller import test_controller
 
 
+# Recommend view, used as interface for users. It's connected only with recommend controller [controller.py].
 class Recommend(View):
     def get(self, request):
         if 'uuid' in self.request.GET and 'matrix' in self.request.GET and 'lon' in self.request.GET and 'lat' in \
@@ -21,15 +21,6 @@ class Recommend(View):
             response = HttpResponse("Insufficient data provided.")
             response.status_code = 400
             return response
-
-        if 'ac' in self.request.GET:
-            ac = self.request.GET['ac']
-            if ac not in ['0', '1', '2', '3']:
-                ac = 0
-            else:
-                ac = int(ac)
-        else:
-            ac = 0
 
         if 'ignore' in self.request.GET:
             ignore = self.request.GET['ignore']
@@ -55,11 +46,9 @@ class Recommend(View):
 
 class Test(View):
     def get(self, request):
-        print "Sranje"
-        dict_res = get_recommendation('Test', 1429260495, {'lat': 45.254, 'lon': 19.824},
-                                      "vfdjv36q9347fdvgsdv", None, 5)
-        return HttpResponse(str(dict_res))
-
+        result = test_controller()
+        return HttpResponse(json.dumps(result), content_type="application/json")
+# ----------------------------------------------------------------------------------------------------------------------
 
 class Categories(View):
     def get(self, request):
@@ -68,7 +57,6 @@ class Categories(View):
 
 
 class Matrix(View):
-
     def post(self, request):
         recommendation_matrix = request.body
         checksum = hashlib.md5()
